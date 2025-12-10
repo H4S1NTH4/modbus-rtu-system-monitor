@@ -1,0 +1,11 @@
+//t1
+
+cd modbus-slave
+
+g++ -o system_monitor main.cpp crc.cpp -pthread -std=c++11
+./system_monitor --slave_address 1
+
+
+//t2
+cd modbus-slave
+python3 test_slave.py
