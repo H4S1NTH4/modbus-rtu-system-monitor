@@ -14,8 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/jobs")
-@CrossOrigin(origins = "*") // Allow React Frontend to connect
+@RequestMapping("/api/jobs")
 public class JobController {
 
     private final JobScheduler jobScheduler;
