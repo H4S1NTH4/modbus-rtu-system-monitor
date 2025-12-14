@@ -3,9 +3,14 @@ package com.hasintha.modbus.master.Controller;
 
 import com.hasintha.modbus.master.Model.Job;
 import com.hasintha.modbus.master.Model.JobExecution;
+import com.hasintha.modbus.master.Model.JobStopResult;
 import com.hasintha.modbus.master.Repository.JobExecutionRepository;
 import com.hasintha.modbus.master.Repository.JobRepository;
 import com.hasintha.modbus.master.Service.JobScheduler;
+import com.hasintha.modbus.master.Service.JobService;
+import com.hasintha.modbus.master.dto.JobResponseDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,11 +25,15 @@ public class JobController {
     private final JobScheduler jobScheduler;
     private final JobRepository jobRepository;
     private final JobExecutionRepository executionRepository;
+    private final JobService jobService;
 
-    public JobController(JobScheduler jobScheduler, JobRepository jobRepository, JobExecutionRepository executionRepository) {
+
+
+    public JobController(JobScheduler jobScheduler, JobExecutionRepository executionRepository, JobRepository jobRepository, JobService jobService) {
         this.jobScheduler = jobScheduler;
         this.jobRepository = jobRepository;
         this.executionRepository = executionRepository;
+        this.jobService = jobService;
     }
 
     // 1. Schedule a new job
@@ -35,8 +44,8 @@ public class JobController {
         Job job = jobScheduler.scheduleNewJob(ip, cron);
         return ResponseEntity.ok(job);
     }
-    // 2. Get Job Details & History
-    @GetMapping("/{jobId}")
+
+    @GetMapping("v0/{jobId}")
     public ResponseEntity<Map<String, Object>> getJob(@PathVariable String jobId) {
         Map<String, Object> response = new HashMap<>();
 
@@ -54,16 +63,30 @@ public class JobController {
         return ResponseEntity.ok(response);
     }
 
+    // 2. Get Job Details & History
+    @GetMapping("/{jobId}")
+    public ResponseEntity<JobResponseDto> getJobv1(@PathVariable String jobId){
+        return ResponseEntity.ok(jobService.getJobDetails(jobId));
+    }
+
     // 3. List All Jobs
     @GetMapping
     public List<Job> getAllJobs() {
-        return jobRepository.findAll();
+        return jobService.getAllJobs();
     }
 
     // 4. Stop a Job
     @DeleteMapping("/{jobId}")
-    public ResponseEntity<Void> stopJob(@PathVariable String jobId) {
+    public ResponseEntity<?> stopJob(@PathVariable String jobId) {
         jobScheduler.stopJob(jobId);
         return ResponseEntity.ok().build();
     }
+
+//    //5. update job
+//    @PatchMapping("/{jobId")
+//    public ResponseEntity<Job> updateJob(@PathVariable String jobId, @RequestBody Job job){
+//        Job existingJob = jobRepository.findById(jobId).orElseThrow()
+//
+//    }
+
 }

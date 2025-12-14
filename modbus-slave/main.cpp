@@ -1,23 +1,6 @@
  //Assignment: Modbus RTU (over TCP) Slave
  //Candidate: Hasintha Dilshan
 
-// #include <iostream>
-// #include <string>
-// #include <vector>
-// #include <cstring>
-// #include <unistd.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
-// #include <fstream>
-// #include <sstream>
-// #include <sys/statvfs.h>
-// #include <thread>
-// #include <chrono>
-// #include <cmath>
-// #include <iomanip>
-// #include "crc.h"
-
 #include <iostream>           // Input/output streams (std::cout, std::cerr)
 #include <string>             // String handling (std::string)
 // #include <vector>             // Dynamic arrays (not heavily used here)

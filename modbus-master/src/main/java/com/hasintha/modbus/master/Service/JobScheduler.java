@@ -1,7 +1,10 @@
 package com.hasintha.modbus.master.Service;
 
+import com.hasintha.modbus.master.Exception.JobAlreadyStoppedException;
+import com.hasintha.modbus.master.Exception.JobNotFoundException;
 import com.hasintha.modbus.master.Model.Job;
 import com.hasintha.modbus.master.Model.JobExecution;
+import com.hasintha.modbus.master.Model.JobStopResult;
 import com.hasintha.modbus.master.Repository.JobRepository;
 import com.hasintha.modbus.master.Repository.JobExecutionRepository;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -9,6 +12,7 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -102,15 +106,23 @@ public class JobScheduler {
      * Stops a job.
      */
     public void stopJob(String jobId) {
-        // Cancel the scheduled thread
-        if (activeTasks.containsKey(jobId)) {
-            activeTasks.get(jobId).cancel(false);
-            activeTasks.remove(jobId);
+
+        // Check if job exists in database
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
+
+        // Job already stopped
+        if (!activeTasks.containsKey(jobId)) {
+            throw new JobAlreadyStoppedException(jobId);
         }
-        // Update DB status
-        jobRepository.findById(jobId).ifPresent(job -> {
-            job.setStatus("STOPPED");
-            jobRepository.save(job);
-        });
+
+        // Cancel the scheduled thread
+        activeTasks.get(jobId).cancel(false);
+        activeTasks.remove(jobId);
+        //update DB status
+        job.setStatus("STOPPED");
+        jobRepository.save(job);
     }
+
+
+
 }
