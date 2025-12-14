@@ -82,11 +82,14 @@ public class JobController {
         return ResponseEntity.ok().build();
     }
 
-//    //5. update job
-//    @PatchMapping("/{jobId")
-//    public ResponseEntity<Job> updateJob(@PathVariable String jobId, @RequestBody Job job){
-//        Job existingJob = jobRepository.findById(jobId).orElseThrow()
-//
-//    }
+    // 5. Update a Job
+    @PatchMapping("/{jobId}")
+    public ResponseEntity<Job> updateJob(@PathVariable String jobId, @RequestBody Map<String, String> payload) {
+        String targetIp = payload.get("targetIp");
+        String cronExpression = payload.get("cronExpression");
+
+        Job updatedJob = jobService.updateJob(jobId, targetIp, cronExpression);
+        return ResponseEntity.ok(updatedJob);
+    }
 
 }

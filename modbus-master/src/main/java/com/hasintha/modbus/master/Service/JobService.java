@@ -19,10 +19,12 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final JobExecutionRepository jobExecutionRepository;
+    private final JobScheduler jobScheduler;
 
-    public JobService(JobRepository jobRepository, JobExecutionRepository jobExecutionRepository){
-        this.jobRepository =jobRepository;
+    public JobService(JobRepository jobRepository, JobExecutionRepository jobExecutionRepository, JobScheduler jobScheduler){
+        this.jobRepository = jobRepository;
         this.jobExecutionRepository = jobExecutionRepository;
+        this.jobScheduler = jobScheduler;
     }
 
     public List<Job> getAllJobs(){
@@ -50,5 +52,8 @@ public class JobService {
         return new JobResponseDto(job.getId(),job.getStatus(),executionDtos);
     }
 
-
+    public Job updateJob(String jobId, String targetIp, String cronExpression) {
+        // Delegate to JobScheduler to handle the update properly (stop/start job)
+        return jobScheduler.updateJob(jobId, targetIp, cronExpression);
+    }
 }

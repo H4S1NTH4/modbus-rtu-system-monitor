@@ -115,7 +115,7 @@ public class JobScheduler {
             throw new JobAlreadyStoppedException(jobId);
         }
 
-        // Cancel the scheduled thread
+//      Cancel the scheduled thread
         activeTasks.get(jobId).cancel(false);
         activeTasks.remove(jobId);
         //update DB status
@@ -123,6 +123,63 @@ public class JobScheduler {
         jobRepository.save(job);
     }
 
+    /**
+     * Updates an existing job with new parameters or restarts a stopped job.
+     * This method handles multiple scenarios:
+     * - Updates parameters for running jobs and restarts them
+     * - Updates parameters for stopped jobs and starts them
+     * - Restarts stopped jobs without changing parameters
+     */
+    public Job updateJob(String jobId, String newIp, String newCron) {
+        // Find the existing job
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
 
+        boolean hasChanges = false;
+
+        // Update job parameters if provided
+        if (newIp != null && !newIp.isEmpty()) {
+            job.setTargetIp(newIp);
+            hasChanges = true;
+        }
+        if (newCron != null && !newCron.isEmpty()) {
+            job.setCronExpression(newCron);
+            hasChanges = true;
+        }
+
+        // Determine if we need to reschedule the job
+        boolean needsReschedule = false;
+
+        // Check current job status in the system
+        boolean isCurrentlyRunning = activeTasks.containsKey(jobId);
+
+        // If job is currently running and has changes, stop and restart it
+        if (isCurrentlyRunning && hasChanges) {
+            stopJob(jobId);
+            needsReschedule = true;
+        }
+        // If job is currently stopped and we need to restart it (either with changes or without changes)
+        else if (!isCurrentlyRunning && ("STOPPED".equals(job.getStatus()) || hasChanges)) {
+            needsReschedule = true;
+        }
+        // If job is running and no changes, just make sure status is set to RUNNING
+        else if (isCurrentlyRunning && !hasChanges) {
+            job.setStatus("RUNNING");
+            job = jobRepository.save(job);
+            return job;
+        }
+
+        // Update job status to RUNNING since we're going to schedule it (if needed)
+        job.setStatus("RUNNING");
+
+        // Save the updated job
+        job = jobRepository.save(job);
+
+        // Start the job if needed
+        if (needsReschedule) {
+            startTask(job);
+        }
+
+        return job;
+    }
 
 }
