@@ -1,0 +1,380 @@
+/* CRON Builder Component Styles */
+
+.cron-builder {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #2196f3;
+}
+
+/* Header */
+.cron-builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cron-builder-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.mode-toggle-btn {
+  padding: 8px 16px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mode-toggle-btn:hover:not(:disabled) {
+  background-color: #1976d2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+}
+
+.mode-toggle-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Presets Section */
+.cron-presets {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.presets-label {
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.preset-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.preset-btn {
+  padding: 10px 14px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #2196f3;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  font-weight: 500;
+}
+
+.preset-btn:hover:not(:disabled) {
+  background-color: #2196f3;
+  color: white;
+  border-color: #2196f3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+}
+
+.preset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Builder Content */
+.cron-builder-content {
+  margin-bottom: 24px;
+}
+
+.builder-hint {
+  margin: 0 0 16px 0;
+  color: #555;
+  font-size: 13px;
+  padding: 10px 12px;
+  background-color: #e3f2fd;
+  border-left: 3px solid #2196f3;
+  border-radius: 4px;
+}
+
+/* Visual Builder Grid */
+.cron-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Individual Field Builder */
+.cron-field-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s;
+}
+
+.cron-field-builder:hover {
+  border-color: #2196f3;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);
+}
+
+.cron-field-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.cron-field-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cron-field-type-select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cron-field-type-select:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.cron-field-input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.cron-field-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.cron-field-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cron-field-input-group span {
+  color: #666;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cron-field-input-group span.optional {
+  color: #999;
+  font-size: 12px;
+}
+
+.cron-field-input-small {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 70px;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.cron-field-input-small:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.cron-field-value {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cron-value-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #2196f3;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Advanced Mode */
+.advanced-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.advanced-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.raw-cron-input {
+  padding: 12px 14px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: 'Courier New', monospace;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+.raw-cron-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.field-hint {
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.parse-error {
+  padding: 8px 12px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 3px solid #d32f2f;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Preview Panel */
+.cron-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(156, 39, 176, 0.05) 100%);
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-section label {
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-value {
+  padding: 12px 14px;
+  background-color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  word-break: break-word;
+}
+
+.preview-value.cron-expression {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #2196f3;
+  font-size: 15px;
+}
+
+.preview-value.human-readable {
+  color: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .cron-fields-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .cron-preview {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cron-builder {
+    padding: 16px;
+  }
+
+  .cron-builder-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mode-toggle-btn {
+    width: 100%;
+  }
+
+  .preset-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cron-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cron-field-input-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cron-field-input-small {
+    width: 100%;
+  }
+
+  .cron-preview {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}

@@ -104,6 +104,7 @@ public class JobService {
                 job.getId(),
                 job.getStatus(),
                 job.getCreatedAt(),
+                job.getCronExpression(),
                 executionDtos,
                 paginationMetadata
         );

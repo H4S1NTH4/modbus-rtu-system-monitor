@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { createJob } from '../services/apiService';
 import { useToast } from '../context/ToastContext';
+import CronBuilder from './CronBuilder';
 import '../styles/JobScheduler.css';
 
 const JobScheduler = ({ onJobCreated }) => {
   const [targetIp, setTargetIp] = useState('');
-  const [cronExpression, setCronExpression] = useState('0 0 * * *');
+  const [cronExpression, setCronExpression] = useState('0 0 0 * * *');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -56,14 +57,6 @@ const JobScheduler = ({ onJobCreated }) => {
     }
   };
 
-  const cronExamples = [
-    { label: 'Every minute', value: '* * * * *' },
-    { label: 'Every hour', value: '0 * * * *' },
-    { label: 'Daily at midnight', value: '0 0 * * *' },
-    { label: 'Every 6 hours', value: '0 */6 * * *' },
-    { label: 'Every weekday at 9 AM', value: '0 9 * * 1-5' },
-  ];
-
   return (
     <div className="job-scheduler">
       <h2>Schedule Monitoring Job</h2>
@@ -83,35 +76,11 @@ const JobScheduler = ({ onJobCreated }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="cronExpression">CRON Expression</label>
-          <input
-            type="text"
-            id="cronExpression"
+          <CronBuilder
             value={cronExpression}
-            onChange={(e) => setCronExpression(e.target.value)}
-            placeholder="e.g., 0 0 * * *"
-            required
+            onChange={setCronExpression}
             disabled={loading}
           />
-          <small>Format: minute hour day month day-of-week</small>
-        </div>
-
-        <div className="cron-examples">
-          <p>Quick presets:</p>
-          <div className="preset-buttons">
-            {cronExamples.map((example) => (
-              <button
-                key={example.value}
-                type="button"
-                className="preset-btn"
-                onClick={() => setCronExpression(example.value)}
-                disabled={loading}
-                title={example.label}
-              >
-                {example.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <button

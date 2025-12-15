@@ -12,6 +12,7 @@ public record PagedJobExecutionResponseDto(
     String jobId,
     String status,
     LocalDateTime createdAt,
+    String cronExpression,
 
     // Paginated execution data
     List<JobExecutionDto> executions,
