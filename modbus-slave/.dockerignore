@@ -1,0 +1,25 @@
+# Compiled binaries
+system_monitor
+*.o
+*.out
+a.out
+
+# Test files
+test_*.cpp
+test_*.py
+*.py
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
