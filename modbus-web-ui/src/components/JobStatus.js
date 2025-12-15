@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getJobStatus, deleteJob, updateJob } from '../services/apiService';
+import { getJobStatusPaginated, deleteJob, updateJob } from '../services/apiService';
 import { useToast } from '../context/ToastContext';
 import MetricsDisplay from './MetricsDisplay';
 import EditJobModal from './EditJobModal';
@@ -15,14 +15,26 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActionConfirm, setShowActionConfirm] = useState(false);
   const [actionType, setActionType] = useState(null); // 'stop' or 'start'
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(20);
+  const [paginationData, setPaginationData] = useState(null);
   const { showToast } = useToast();
+
+  // Reset to first page when jobId changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [jobId]);
 
   useEffect(() => {
     const fetchJobStatus = async () => {
       try {
         setError(null);
-        const jobData = await getJobStatus(jobId);
+        const jobData = await getJobStatusPaginated(jobId, currentPage, pageSize);
         setJob(jobData);
+        // Extract pagination data from response
+        if (jobData.pagination) {
+          setPaginationData(jobData.pagination);
+        }
       } catch (err) {
         setError(
           err.response?.data?.message ||
@@ -40,7 +52,7 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
     const interval = setInterval(fetchJobStatus, 3000);
 
     return () => clearInterval(interval);
-  }, [jobId, polling]);
+  }, [jobId, currentPage, pageSize, polling]);
 
   const handleStopClick = () => {
     setActionType('stop');
@@ -226,7 +238,7 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
         </div>
         <div className="detail-item">
           <span className="detail-label">Total Executions:</span>
-          <span className="detail-value">{job.executions?.length || 0}</span>
+          <span className="detail-value">{paginationData?.totalElements || job.executions?.length || 0}</span>
         </div>
       </div>
 
@@ -272,31 +284,60 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
         </div>
       )}
 
-      {job.executions && job.executions.length > 1 && (
+      {job.executions && job.executions.length > 0 && (
         <div className="execution-history">
           <h4>Execution History</h4>
           <div className="execution-list">
-            {job.executions.map((execution, index) => (
-              <div
-                key={index}
-                className="execution-item"
-                style={{ borderLeftColor: getStatusColor(execution.status) }}
-              >
-                <span className="execution-index">#{index + 1}</span>
-                <span className="execution-status-text" style={{ color: getStatusColor(execution.status) }}>
-                  {getStatusIcon(execution.status)} {execution.status}
-                </span>
-                <span className="execution-datetime">
-                  {new Date(execution.executionTime).toLocaleString()}
-                </span>
-                {execution.telemetry && Object.keys(execution.telemetry).length > 0 && (
-                  <span className="execution-metrics">
-                    CPU: {execution.telemetry.cpu?.toFixed(1)}% | RAM: {execution.telemetry.ram?.toFixed(1)}% | Disk: {execution.telemetry.disk?.toFixed(1)}%
+            {job.executions.map((execution, index) => {
+              const displayIndex = currentPage * pageSize + index + 1;
+              return (
+                <div
+                  key={index}
+                  className="execution-item"
+                  style={{ borderLeftColor: getStatusColor(execution.status) }}
+                >
+                  <span className="execution-index">#{displayIndex}</span>
+                  <span className="execution-status-text" style={{ color: getStatusColor(execution.status) }}>
+                    {getStatusIcon(execution.status)} {execution.status}
                   </span>
-                )}
-              </div>
-            ))}
+                  <span className="execution-datetime">
+                    {new Date(execution.executionTime).toLocaleString()}
+                  </span>
+                  {execution.telemetry && Object.keys(execution.telemetry).length > 0 && (
+                    <span className="execution-metrics">
+                      CPU: {execution.telemetry.cpu?.toFixed(1)}% | RAM: {execution.telemetry.ram?.toFixed(1)}% | Disk: {execution.telemetry.disk?.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          {paginationData && paginationData.totalPages > 1 && (
+            <div className="pagination-controls">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={paginationData.first}
+                title="Previous page"
+              >
+                ← Previous
+              </button>
+
+              <div className="pagination-info">
+                Page {currentPage + 1} of {paginationData.totalPages}
+              </div>
+
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(Math.min(paginationData.totalPages - 1, currentPage + 1))}
+                disabled={paginationData.last}
+                title="Next page"
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

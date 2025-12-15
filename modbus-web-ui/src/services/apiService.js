@@ -44,6 +44,23 @@ export const getJobStatus = async (jobId) => {
 };
 
 /**
+ * Get job status with paginated executions
+ * @param {string} jobId - Job ID
+ * @param {number} page - Zero-based page number (default: 0)
+ * @param {number} size - Number of items per page (default: 20)
+ * @returns {Promise} Job status and paginated execution data
+ */
+export const getJobStatusPaginated = async (jobId, page = 0, size = 20) => {
+  try {
+    const response = await apiClient.get(`/jobs/${jobId}?page=${page}&size=${size}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching paginated job status:', error);
+    throw error;
+  }
+};
+
+/**
  * Get all jobs
  * @param {string} status - Optional status filter (RUNNING, STOPPED)
  * @returns {Promise} Array of jobs

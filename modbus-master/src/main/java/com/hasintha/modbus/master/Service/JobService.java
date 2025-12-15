@@ -7,6 +7,10 @@ import com.hasintha.modbus.master.Repository.JobExecutionRepository;
 import com.hasintha.modbus.master.Repository.JobRepository;
 import com.hasintha.modbus.master.dto.JobExecutionDto;
 import com.hasintha.modbus.master.dto.JobResponseDto;
+import com.hasintha.modbus.master.dto.PagedJobExecutionResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +54,58 @@ public class JobService {
 
         //return main DTO
         return new JobResponseDto(job.getId(),job.getStatus(),executionDtos);
+    }
+
+    /**
+     * Retrieves job details with paginated execution history.
+     *
+     * @param jobId The job identifier
+     * @param page Zero-based page number (must be >= 0)
+     * @param size Page size (must be > 0)
+     * @return PagedJobExecutionResponseDto with job metadata and paginated executions
+     * @throws JobNotFoundException if job doesn't exist
+     */
+    public PagedJobExecutionResponseDto getJobDetailsWithPagination(String jobId, int page, int size) {
+        // 1. Fetch job metadata (throws JobNotFoundException if not found)
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+
+        // 2. Create Pageable object for pagination
+        // Sort by executionTime descending (newest first) is already in method name
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 3. Fetch paginated execution history
+        Page<JobExecution> executionPage = jobExecutionRepository
+                .findByJobIdOrderByExecutionTimeDesc(jobId, pageable);
+
+        // 4. Convert Page<JobExecution> to List<JobExecutionDto>
+        List<JobExecutionDto> executionDtos = executionPage.getContent().stream()
+                .map(exec -> new JobExecutionDto(
+                        exec.getId(),
+                        exec.getExecutionTime(),
+                        exec.getStatus(),
+                        exec.getTelemetry()
+                ))
+                .toList();
+
+        // 5. Build pagination metadata
+        PagedJobExecutionResponseDto.PaginationMetadata paginationMetadata =
+                new PagedJobExecutionResponseDto.PaginationMetadata(
+                        executionPage.getNumber(),          // currentPage (0-based)
+                        executionPage.getSize(),            // pageSize
+                        executionPage.getTotalElements(),   // totalElements
+                        executionPage.getTotalPages(),      // totalPages
+                        executionPage.isFirst(),            // first
+                        executionPage.isLast()              // last
+                );
+
+        // 6. Return complete DTO
+        return new PagedJobExecutionResponseDto(
+                job.getId(),
+                job.getStatus(),
+                executionDtos,
+                paginationMetadata
+        );
     }
 
     public Job updateJob(String jobId, String targetIp, String cronExpression) {
