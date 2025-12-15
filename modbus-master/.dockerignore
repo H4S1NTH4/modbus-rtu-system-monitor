@@ -1,0 +1,38 @@
+# Build output
+target/
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+*.iml
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+HELP.md
+CORS_CONFIGURATION.md
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Claude
+.claude/
