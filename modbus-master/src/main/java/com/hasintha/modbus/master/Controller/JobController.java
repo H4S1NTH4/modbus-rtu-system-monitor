@@ -9,6 +9,7 @@ import com.hasintha.modbus.master.Repository.JobRepository;
 import com.hasintha.modbus.master.Service.JobScheduler;
 import com.hasintha.modbus.master.Service.JobService;
 import com.hasintha.modbus.master.dto.JobResponseDto;
+import com.hasintha.modbus.master.dto.PagedJobExecutionResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/jobs")
 public class JobController {
+
+    // Pagination constants
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int DEFAULT_PAGE = 0;
 
     private final JobScheduler jobScheduler;
     private final JobRepository jobRepository;
@@ -64,10 +70,38 @@ public class JobController {
         return ResponseEntity.ok(response);
     }
 
-    // 2. Get Job Details & History
+    // 2. Get Job Details & History with Pagination
+    /**
+     * Get Job Details with Paginated Execution History
+     *
+     * @param jobId The job identifier
+     * @param page Optional page number (default: 0, zero-based)
+     * @param size Optional page size (default: 20, max: 100)
+     * @return Paginated job execution response
+     */
     @GetMapping("/{jobId}")
-    public ResponseEntity<JobResponseDto> getJobv1(@PathVariable String jobId){
-        return ResponseEntity.ok(jobService.getJobDetails(jobId));
+    public ResponseEntity<PagedJobExecutionResponseDto> getJobv1(
+            @PathVariable String jobId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        // Validation: Ensure page is non-negative
+        if (page < 0) {
+            page = DEFAULT_PAGE;
+        }
+
+        // Validation: Ensure size is within allowed range
+        if (size <= 0) {
+            size = DEFAULT_PAGE_SIZE;
+        } else if (size > MAX_PAGE_SIZE) {
+            size = MAX_PAGE_SIZE;
+        }
+
+        PagedJobExecutionResponseDto response = jobService.getJobDetailsWithPagination(
+                jobId, page, size
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     // 3. List All Jobs
