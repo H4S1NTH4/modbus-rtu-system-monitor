@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getJobStatus, deleteJob } from '../services/apiService';
+import { getJobStatus, deleteJob, updateJob } from '../services/apiService';
+import { useToast } from '../context/ToastContext';
 import MetricsDisplay from './MetricsDisplay';
+import EditJobModal from './EditJobModal';
+import ConfirmDialog from './ConfirmDialog';
 import '../styles/JobStatus.css';
 
 const JobStatus = ({ jobId, onJobDeleted }) => {
@@ -8,7 +11,11 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [polling, setPolling] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showActionConfirm, setShowActionConfirm] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'stop' or 'start'
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchJobStatus = async () => {
@@ -35,22 +42,45 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
     return () => clearInterval(interval);
   }, [jobId, polling]);
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to stop this job?')) {
-      return;
-    }
+  const handleStopClick = () => {
+    setActionType('stop');
+    setShowActionConfirm(true);
+  };
 
-    setDeleteLoading(true);
+  const handleStartClick = () => {
+    setActionType('start');
+    setShowActionConfirm(true);
+  };
+
+  const handleConfirmAction = async () => {
+    setActionLoading(true);
     try {
-      await deleteJob(jobId);
-      if (onJobDeleted) {
-        onJobDeleted();
+      if (actionType === 'stop') {
+        await deleteJob(jobId);
+        showToast('Job stopped successfully', 'success');
+        if (onJobDeleted) {
+          onJobDeleted();
+        }
+      } else if (actionType === 'start') {
+        const updatedJob = await updateJob(jobId, job.targetIp, job.cronExpression);
+        setJob(updatedJob);
+        showToast('Job restarted successfully', 'success');
       }
+      setShowActionConfirm(false);
+      setActionType(null);
     } catch (err) {
-      setError('Failed to delete job');
+      const errorMessage = err.response?.data?.message ||
+        (actionType === 'stop' ? 'Failed to stop job' : 'Failed to restart job');
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
-      setDeleteLoading(false);
+      setActionLoading(false);
     }
+  };
+
+  const handleUpdateSuccess = (updatedJob) => {
+    setJob(updatedJob);
+    setShowEditModal(false);
   };
 
   const getStatusColor = (status) => {
@@ -131,7 +161,7 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
     <div className="job-status">
       <div className="job-header">
         <div className="job-title">
-          <h3>Job ID: {jobId}</h3>
+          <h3>Job Details</h3>
           <div
             className="status-badge"
             style={{ backgroundColor: statusColor }}
@@ -140,13 +170,35 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
           </div>
         </div>
 
-        <button
-          className="delete-btn"
-          onClick={handleDelete}
-          disabled={deleteLoading}
-        >
-          {deleteLoading ? 'Stopping...' : 'Stop Job'}
-        </button>
+        <div className="job-actions">
+          <button
+            className="edit-btn"
+            onClick={() => setShowEditModal(true)}
+            disabled={actionLoading || job.status === 'STOPPED'}
+            title={job.status === 'STOPPED' ? 'Cannot edit stopped job' : 'Edit job parameters'}
+          >
+            ✎ Edit
+          </button>
+          {job.status === 'STOPPED' ? (
+            <button
+              className="start-btn"
+              onClick={handleStartClick}
+              disabled={actionLoading}
+              title="Restart job"
+            >
+              {actionLoading ? 'Starting...' : '▶ Start'}
+            </button>
+          ) : (
+            <button
+              className="delete-btn"
+              onClick={handleStopClick}
+              disabled={actionLoading}
+              title="Stop job"
+            >
+              {actionLoading ? 'Stopping...' : '⏹ Stop'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="job-details">
@@ -247,6 +299,32 @@ const JobStatus = ({ jobId, onJobDeleted }) => {
           </div>
         </div>
       )}
+
+      <EditJobModal
+        isOpen={showEditModal}
+        job={job}
+        onClose={() => setShowEditModal(false)}
+        onUpdate={handleUpdateSuccess}
+      />
+
+      <ConfirmDialog
+        isOpen={showActionConfirm}
+        title={actionType === 'stop' ? 'Stop Job' : 'Start Job'}
+        message={
+          actionType === 'stop'
+            ? 'Are you sure you want to stop this monitoring job? This action will terminate the scheduled task.'
+            : 'Are you sure you want to restart this job? It will resume the scheduled monitoring.'
+        }
+        onConfirm={handleConfirmAction}
+        onCancel={() => {
+          setShowActionConfirm(false);
+          setActionType(null);
+        }}
+        confirmText={actionType === 'stop' ? 'Stop Job' : 'Start Job'}
+        cancelText="Cancel"
+        danger={actionType === 'stop'}
+        isLoading={actionLoading}
+      />
     </div>
   );
 };

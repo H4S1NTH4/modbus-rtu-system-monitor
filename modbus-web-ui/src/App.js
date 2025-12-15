@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import './App.css';
+import { ToastProvider, useToast } from './context/ToastContext';
+import Toast from './components/Toast';
 import JobScheduler from './components/JobScheduler';
 import JobStatus from './components/JobStatus';
 import { getAllJobs } from './services/apiService';
 
-function App() {
+function AppContent() {
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const { showToast } = useToast();
 
   const handleJobCreated = (newJob) => {
     setJobs([...jobs, newJob]);
@@ -15,7 +18,10 @@ function App() {
   };
 
   const handleJobDeleted = () => {
-    setJobs(jobs.filter((job) => job.id !== selectedJobId));
+    // Update the job status to STOPPED instead of removing it from the list
+    setJobs(jobs.map((job) =>
+      job.id === selectedJobId ? { ...job, status: 'STOPPED' } : job
+    ));
     setSelectedJobId(null);
   };
 
@@ -24,9 +30,14 @@ function App() {
     try {
       const jobList = await getAllJobs();
       setJobs(Array.isArray(jobList) ? jobList : []);
+      if (jobList && jobList.length > 0) {
+        showToast(`Loaded ${jobList.length} job(s)`, 'success');
+      } else {
+        showToast('No jobs found', 'info');
+      }
     } catch (err) {
       console.error('Failed to load jobs:', err);
-      alert('Failed to load jobs. Make sure the backend is running.');
+      showToast('Failed to load jobs. Make sure the backend is running.', 'error');
     } finally {
       setLoadingJobs(false);
     }
@@ -104,7 +115,17 @@ function App() {
       <footer className="app-footer">
         <p>Modbus RTU System Monitoring © 2024 | Assignment by Hasintha Dilshan</p>
       </footer>
+
+      <Toast />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 

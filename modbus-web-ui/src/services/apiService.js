@@ -63,6 +63,26 @@ export const getAllJobs = async (status = null) => {
 };
 
 /**
+ * Update and restart a job
+ * @param {string} jobId - Job ID
+ * @param {string} targetIp - New target server IP address
+ * @param {string} cronExpression - New CRON expression for scheduling
+ * @returns {Promise} Updated job details
+ */
+export const updateJob = async (jobId, targetIp, cronExpression) => {
+  try {
+    const response = await apiClient.patch(`/jobs/${jobId}`, {
+      targetIp,
+      cronExpression,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating job:', error);
+    throw error;
+  }
+};
+
+/**
  * Stop/Delete a job
  * @param {string} jobId - Job ID
  * @returns {Promise} Success response

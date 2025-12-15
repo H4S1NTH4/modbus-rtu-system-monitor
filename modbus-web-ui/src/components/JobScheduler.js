@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createJob } from '../services/apiService';
+import { useToast } from '../context/ToastContext';
 import '../styles/JobScheduler.css';
 
 const JobScheduler = ({ onJobCreated }) => {
@@ -8,6 +9,7 @@ const JobScheduler = ({ onJobCreated }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,32 +20,37 @@ const JobScheduler = ({ onJobCreated }) => {
     // Validate IP address
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
     if (!ipRegex.test(targetIp)) {
-      setError('Please enter a valid IP address');
+      const errorMsg = 'Please enter a valid IP address';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
       setLoading(false);
       return;
     }
 
     // Validate CRON expression (basic validation)
     if (!cronExpression.trim()) {
-      setError('Please enter a CRON expression');
+      const errorMsg = 'Please enter a CRON expression';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
       setLoading(false);
       return;
     }
 
     try {
       const job = await createJob(targetIp, cronExpression);
-      setSuccess(`Job created successfully! Job ID: ${job.id}`);
+      const successMsg = `Job created successfully! Job ID: ${job.id}`;
+      setSuccess(successMsg);
       setTargetIp('');
       setCronExpression('0 0 * * *');
+      showToast(successMsg, 'success');
 
       if (onJobCreated) {
         onJobCreated(job);
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Failed to create job. Please check your input and try again.'
-      );
+      const errorMsg = err.response?.data?.message || 'Failed to create job. Please check your input and try again.';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
