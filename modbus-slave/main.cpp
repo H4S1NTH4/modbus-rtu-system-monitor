@@ -53,11 +53,11 @@ uint16_t getCpuUsage() {
 
     double totalDelta = total2 - total1;
     double idleDelta = idle2 - idle1;
-    
+
     if (totalDelta == 0) return 0;
 
     double usage = 100.0 * (1.0 - (idleDelta / totalDelta));
-    return (uint16_t)(usage * 100); 
+    return (uint16_t)(usage * 100);
 }
 
 // Register 0x06: RAM Usage
@@ -66,7 +66,7 @@ uint16_t getRamUsage() {
     std::ifstream file("/proc/meminfo");
     std::string token;
     unsigned long total = 0, available = 0;
-    
+
     while (file >> token) {
         if (token == "MemTotal:") file >> total;
         if (token == "MemAvailable:") file >> available;
@@ -92,18 +92,113 @@ uint16_t getDiskUsage() {
     return (uint16_t)(percent * 100);
 }
 
-// --- 2. Modbus Handling ---
+// --- 2. Modbus RTU over TCP Handling ---
+
+// Process a complete Modbus frame
+void processFrame(unsigned char* frame, int frameLen, int mySlaveId, int clientSocket) {
+    // 1. Validate Slave ID
+    int receivedSlaveId = frame[0];
+    if (receivedSlaveId != mySlaveId) {
+        std::cout << "Ignored ID: " << receivedSlaveId << ", expected: " << mySlaveId << std::endl;
+        return;
+    }
+
+    // 2. Parse Request
+    int functionCode = frame[1];
+    uint16_t startAddr = (frame[2] << 8) | frame[3]; // Big Endian
+    uint16_t count = (frame[4] << 8) | frame[5];     // Big Endian
+
+    std::cout << "Request: Func=" << functionCode
+              << " Addr=0x" << std::hex << startAddr
+              << " Count=" << std::dec << count << std::endl;
+
+    // Only supporting Read Holding Registers (0x03) or Input Registers (0x04)
+    if (functionCode != 0x03 && functionCode != 0x04) {
+        std::cout << "Unsupported function code: " << functionCode << std::endl;
+
+        // Send Modbus Exception Response
+        // Format: [SlaveID][FuncCode+0x80][ExceptionCode][CRC_Lo][CRC_Hi]
+        unsigned char exceptionResponse[5];
+        exceptionResponse[0] = (unsigned char)mySlaveId;
+        exceptionResponse[1] = (unsigned char)(0x80 | functionCode); // Set high bit
+        exceptionResponse[2] = 0x01; // Exception Code 0x01: Illegal Function
+
+        uint16_t excCrc = calculateCRC(exceptionResponse, 3);
+        exceptionResponse[3] = excCrc & 0xFF;        // CRC Lo
+        exceptionResponse[4] = (excCrc >> 8) & 0xFF; // CRC Hi
+
+        write(clientSocket, exceptionResponse, 5);
+        std::cout << "Sent exception response (Illegal Function)" << std::endl;
+        return;
+    }
+
+    // Additional validation for count
+    if (count == 0 || count > 125) { // Modbus standard max is 125 registers
+        std::cout << "Invalid count: " << count << std::endl;
+
+        // Send exception response for illegal data value
+        unsigned char exceptionResponse[5];
+        exceptionResponse[0] = (unsigned char)mySlaveId;
+        exceptionResponse[1] = (unsigned char)(0x80 | functionCode); // Set high bit
+        exceptionResponse[2] = 0x03; // Exception Code 0x03: Illegal Data Value
+
+        uint16_t excCrc = calculateCRC(exceptionResponse, 3);
+        exceptionResponse[3] = excCrc & 0xFF;        // CRC Lo
+        exceptionResponse[4] = (excCrc >> 8) & 0xFF; // CRC Hi
+
+        write(clientSocket, exceptionResponse, 5);
+        std::cout << "Sent exception response (Illegal Data Value)" << std::endl;
+        return;
+    }
+
+    // Prepare Response
+    // [SlaveID][FuncCode][ByteCount][Data...][CRC_Lo][CRC_Hi]
+    unsigned char response[256];
+    int respIdx = 0;
+
+    response[respIdx++] = (unsigned char)mySlaveId;
+    response[respIdx++] = (unsigned char)functionCode;
+    response[respIdx++] = (unsigned char)(count * 2); // Byte count (2 bytes per register)
+
+    // Loop through requested registers
+    for (int i = 0; i < count; i++) {
+        uint16_t currentAddr = startAddr + i;
+        uint16_t value = 0;
+
+        if (currentAddr == 0x04) value = getCpuUsage();
+        else if (currentAddr == 0x06) value = getRamUsage();
+        else if (currentAddr == 0x08) value = getDiskUsage();
+        else value = 0xFFFF; // Unknown register - return maximum value to indicate error
+
+        // Modbus Data is Big Endian (High Byte First)
+        response[respIdx++] = (value >> 8) & 0xFF;
+        response[respIdx++] = value & 0xFF;
+    }
+
+    // Calculate CRC for Response
+    uint16_t respCrc = calculateCRC(response, respIdx);
+    response[respIdx++] = respCrc & 0xFF;        // CRC Lo
+    response[respIdx++] = (respCrc >> 8) & 0xFF; // CRC Hi
+
+    // Send
+    write(clientSocket, response, respIdx);
+    std::cout << "Sent response (" << respIdx << " bytes)" << std::endl;
+}
 
 void handleRequest(int clientSocket, int mySlaveId) {
     unsigned char buffer[BUFFER_SIZE];
-    
+
+    // Buffer to accumulate partial frames
+    unsigned char frameBuffer[BUFFER_SIZE];
+    int frameBufferLen = 0;
+
     while (true) {
         memset(buffer, 0, BUFFER_SIZE);
         int bytesRead = read(clientSocket, buffer, BUFFER_SIZE);
-        
+
         if (bytesRead <= 0) {
             std::cout << "Client disconnected." << std::endl;
-            break; 
+            break;
         }
 
         // --- DEBUG PRINT START ---
@@ -114,90 +209,45 @@ void handleRequest(int clientSocket, int mySlaveId) {
         std::cout << std::endl;
         // --- DEBUG PRINT END ---
 
-        if (bytesRead < 8) continue;
+        // Add received bytes to frame buffer
+        for (int i = 0; i < bytesRead; i++) {
+            frameBuffer[frameBufferLen++] = buffer[i];
 
-        // 1. Validate Slave ID
-        int receivedSlaveId = buffer[0];
-        if (receivedSlaveId != mySlaveId) {
-            std::cout << "Ignored ID: " << receivedSlaveId << std::endl;
-            continue;
+            // Process complete frames in the buffer
+            while (frameBufferLen >= 8) {
+                // For Modbus RTU: addr(1) + func(1) + start_addr(2) + count(2) + crc(2) = 8 bytes minimum
+                int functionCode = frameBuffer[1];
+
+                // Only validate frame if it's a standard function code we expect
+                if ((functionCode == 0x03 || functionCode == 0x04) && frameBufferLen >= 8) {
+                    // Validate CRC first - for request, CRC covers first 6 bytes
+                    // In Modbus RTU, CRC is transmitted as low byte first, then high byte
+                    uint16_t receivedCRC = (frameBuffer[7] << 8) | frameBuffer[6]; // Low byte first, then high byte
+                    uint16_t calculatedCRC = calculateCRC(frameBuffer, 6); // Calculate CRC over first 6 bytes
+
+                    if (calculatedCRC == receivedCRC) {
+                        // Valid request frame found
+                        processFrame(frameBuffer, 8, mySlaveId, clientSocket); // Process complete 8-byte request
+                        // Remove processed frame from buffer by shifting remaining data
+                        memmove(frameBuffer, frameBuffer + 8, frameBufferLen - 8);
+                        frameBufferLen -= 8;
+                    } else {
+                        // CRC error - this frame is invalid, try next possible frame
+                        std::cout << "CRC Error in request. Calculated: " << std::hex << calculatedCRC
+                                  << " Received: " << receivedCRC << std::dec << std::endl;
+                        // Also print the raw bytes for debugging
+                        std::cout << "Raw CRC bytes: " << std::hex << (int)frameBuffer[6] << " " << (int)frameBuffer[7] << std::dec << std::endl;
+                        // Remove first byte and continue looking for valid frame
+                        memmove(frameBuffer, frameBuffer + 1, frameBufferLen - 1);
+                        frameBufferLen -= 1;
+                    }
+                } else {
+                    // Not a recognizable frame start, advance buffer by 1 byte
+                    memmove(frameBuffer, frameBuffer + 1, frameBufferLen - 1);
+                    frameBufferLen -= 1;
+                }
+            }
         }
-
-        // 2. Validate CRC
-        // Modbus RTU sends CRC as Low Byte then High Byte
-        uint8_t crcLo = buffer[bytesRead - 2];
-        uint8_t crcHi = buffer[bytesRead - 1];
-        uint16_t receivedCRC = (crcHi << 8) | crcLo;
-
-        uint16_t calculatedCRC = calculateCRC(buffer, bytesRead - 2);
-
-        if (calculatedCRC != receivedCRC) {
-            std::cout << "CRC Error. Calculated: " << std::hex << calculatedCRC
-                      << " Received: " << receivedCRC << std::dec << std::endl;
-            continue;
-        }
-
-        // 3. Parse Request
-        int functionCode = buffer[1];
-        uint16_t startAddr = (buffer[2] << 8) | buffer[3]; // Big Endian
-        uint16_t count = (buffer[4] << 8) | buffer[5];     // Big Endian
-
-        std::cout << "Request: Func=" << functionCode 
-                  << " Addr=0x" << std::hex << startAddr 
-                  << " Count=" << std::dec << count << std::endl;
-
-        // Only supporting Read Holding Registers (0x03) or Input Registers (0x04)
-        if (functionCode != 0x03 && functionCode != 0x04) {
-            std::cout << "Unsupported function code: " << functionCode << std::endl;
-
-            // Send Modbus Exception Response
-            // Format: [SlaveID][FuncCode+0x80][ExceptionCode][CRC_Lo][CRC_Hi]
-            unsigned char exceptionResponse[5];
-            exceptionResponse[0] = (unsigned char)mySlaveId;
-            exceptionResponse[1] = (unsigned char)(0x80 | functionCode); // Set high bit
-            exceptionResponse[2] = 0x01; // Exception Code 0x01: Illegal Function
-
-            uint16_t excCrc = calculateCRC(exceptionResponse, 3);
-            exceptionResponse[3] = excCrc & 0xFF;        // CRC Lo
-            exceptionResponse[4] = (excCrc >> 8) & 0xFF; // CRC Hi
-
-            write(clientSocket, exceptionResponse, 5);
-            std::cout << "Sent exception response (Illegal Function)" << std::endl;
-            continue;
-        }
-
-        // Prepare Response
-        // [SlaveID][FuncCode][ByteCount][Data...][CRC_Lo][CRC_Hi]
-        unsigned char response[256];
-        int respIdx = 0;
-
-        response[respIdx++] = (unsigned char)mySlaveId;
-        response[respIdx++] = (unsigned char)functionCode;
-        response[respIdx++] = (unsigned char)(count * 2); // Byte count (2 bytes per register)
-
-        // Loop through requested registers
-        for (int i = 0; i < count; i++) {
-            uint16_t currentAddr = startAddr + i;
-            uint16_t value = 0;
-
-            if (currentAddr == 0x04) value = getCpuUsage();
-            else if (currentAddr == 0x06) value = getRamUsage();
-            else if (currentAddr == 0x08) value = getDiskUsage();
-            else value = 0x0000; // Unknown register
-
-            // Modbus Data is Big Endian (High Byte First)
-            response[respIdx++] = (value >> 8) & 0xFF;
-            response[respIdx++] = value & 0xFF;
-        }
-
-        // Calculate CRC for Response
-        uint16_t respCrc = calculateCRC(response, respIdx);
-        response[respIdx++] = respCrc & 0xFF;        // CRC Lo
-        response[respIdx++] = (respCrc >> 8) & 0xFF; // CRC Hi
-
-        // Send
-        write(clientSocket, response, respIdx);
-        std::cout << "Sent response (" << respIdx << " bytes)" << std::endl;
     }
     close(clientSocket);
 }
@@ -259,7 +309,7 @@ int main(int argc, char *argv[]) {
             perror("Accept failed");
             continue;
         }
-        
+
         std::cout << "Connection accepted" << std::endl;
         handleRequest(newSocket, slaveId);
     }
