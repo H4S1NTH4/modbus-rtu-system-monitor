@@ -68,7 +68,7 @@ docker compose ps
 
 ### Using MongoDB Atlas (Default)
 
-The application is pre-configured to use MongoDB Atlas. Your credentials are in the `.env` file:
+The application is pre-configured to use MongoDB Atlas. credentials are in the `.env` file:
 
 ```bash
 MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority
