@@ -27,18 +27,20 @@ FROM debian:bookworm-slim
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache \
-    libstdc++ \
-    libgcc
+RUN apt-get update && apt-get install -y \
+    libstdc++6 \
+    libgcc1 \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -S modbus && adduser -S modbus -G modbus
+RUN groupadd -r modbus && useradd -r -g modbus modbus
 
 # Copy binary from builder
 COPY --from=builder /app/system_monitor .
 
 # Change ownership
-RUN chown modbus:modbus system_monitor
+RUN chown modbus:modbus system_monitor && chmod +x system_monitor
 
 # Switch to non-root user
 USER modbus
