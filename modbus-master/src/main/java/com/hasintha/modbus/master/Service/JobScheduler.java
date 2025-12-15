@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
@@ -112,6 +113,10 @@ public class JobScheduler {
 
         // Job already stopped
         if (!activeTasks.containsKey(jobId)) {
+            if(!Objects.equals(job.getStatus(), "STOPPED")) {
+                job.setStatus("STOPPED");
+                jobRepository.save(job);
+            }
             throw new JobAlreadyStoppedException(jobId);
         }
 

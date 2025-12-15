@@ -45,6 +45,7 @@ public class JobController {
         return ResponseEntity.ok(job);
     }
 
+    //this will no longer used
     @GetMapping("v0/{jobId}")
     public ResponseEntity<Map<String, Object>> getJob(@PathVariable String jobId) {
         Map<String, Object> response = new HashMap<>();
