@@ -53,7 +53,7 @@ public class JobService {
                 .toList();
 
         //return main DTO
-        return new JobResponseDto(job.getId(),job.getStatus(),executionDtos);
+        return new JobResponseDto(job.getId(),job.getStatus(),job.getCreatedAt(),executionDtos);
     }
 
     /**
@@ -103,6 +103,7 @@ public class JobService {
         return new PagedJobExecutionResponseDto(
                 job.getId(),
                 job.getStatus(),
+                job.getCreatedAt(),
                 executionDtos,
                 paginationMetadata
         );
