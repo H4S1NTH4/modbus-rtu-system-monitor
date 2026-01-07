@@ -53,7 +53,7 @@ public class JobController {
 
     //this will no longer used
     @GetMapping("v0/{jobId}")
-    public ResponseEntity<Map<String, Object>> getJob(@PathVariable String jobId) {
+    public ResponseEntity<Map<String, Object>> getJob(@PathVariable Long jobId) {
         Map<String, Object> response = new HashMap<>();
 
         // Get Job Metadata
@@ -81,7 +81,7 @@ public class JobController {
      */
     @GetMapping("/{jobId}")
     public ResponseEntity<PagedJobExecutionResponseDto> getJobv1(
-            @PathVariable String jobId,
+            @PathVariable Long jobId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -112,14 +112,14 @@ public class JobController {
 
     // 4. Stop a Job
     @DeleteMapping("/{jobId}")
-    public ResponseEntity<?> stopJob(@PathVariable String jobId) {
+    public ResponseEntity<?> stopJob(@PathVariable Long jobId) {
         jobScheduler.stopJob(jobId);
         return ResponseEntity.ok().build();
     }
 
     // 5. Update a Job
     @PatchMapping("/{jobId}")
-    public ResponseEntity<Job> updateJob(@PathVariable String jobId, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<Job> updateJob(@PathVariable Long jobId, @RequestBody Map<String, String> payload) {
         String targetIp = payload.get("targetIp");
         String cronExpression = payload.get("cronExpression");
 

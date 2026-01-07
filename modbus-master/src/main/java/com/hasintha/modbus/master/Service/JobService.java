@@ -35,7 +35,7 @@ public class JobService {
         return jobRepository.findAll();
     }
 
-    public JobResponseDto getJobDetails(String jobId){
+    public JobResponseDto getJobDetails(Long jobId){
         // Get Job Metadata
         Job job = jobRepository.findById(jobId).orElseThrow( () -> new JobNotFoundException(jobId));
 
@@ -65,7 +65,7 @@ public class JobService {
      * @return PagedJobExecutionResponseDto with job metadata and paginated executions
      * @throws JobNotFoundException if job doesn't exist
      */
-    public PagedJobExecutionResponseDto getJobDetailsWithPagination(String jobId, int page, int size) {
+    public PagedJobExecutionResponseDto getJobDetailsWithPagination(Long jobId, int page, int size) {
         // 1. Fetch job metadata (throws JobNotFoundException if not found)
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new JobNotFoundException(jobId));
@@ -110,7 +110,7 @@ public class JobService {
         );
     }
 
-    public Job updateJob(String jobId, String targetIp, String cronExpression) {
+    public Job updateJob(Long jobId, String targetIp, String cronExpression) {
         // Delegate to JobScheduler to handle the update properly (stop/start job)
         return jobScheduler.updateJob(jobId, targetIp, cronExpression);
     }

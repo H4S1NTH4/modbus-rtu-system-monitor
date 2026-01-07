@@ -1,33 +1,28 @@
 version: '3.8'
 
 services:
-  # MongoDB (OPTIONAL - Commented out by default)
-  # Uncomment this service to use local MongoDB instead of MongoDB Atlas
-  # To use local MongoDB:
-  #   1. Uncomment the mongodb service below
-  #   2. Uncomment the depends_on section in modbus-master
-  #   3. Uncomment the volumes section at the bottom
-  #   4. Update .env: MONGO_URI=mongodb://mongodb:27017/modbus-monitor
-  #
-  # mongodb:
-  #   image: mongo:7.0
-  #   container_name: modbus-mongodb
-  #   restart: unless-stopped
-  #   environment:
-  #     MONGO_INITDB_DATABASE: modbus-monitor
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongodb_data:/data/db
-  #     - mongodb_config:/data/configdb
-  #   networks:
-  #     - modbus-network
-  #   healthcheck:
-  #     test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: modbus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: modbus_monitor
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - modbus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME} -d modbus_monitor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Modbus Master (Spring Boot Backend)
   modbus-master:
@@ -36,15 +31,15 @@ services:
       dockerfile: Dockerfile
     container_name: modbus-master
     restart: unless-stopped
-    # Uncomment depends_on when using local MongoDB
-    # depends_on:
-    #   mongodb:
-    #     condition: service_healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      # Uses MONGO_URI from .env file (defaults to MongoDB Atlas)
-      MONGO_URI: ${MONGO_URI}
+      # PostgreSQL Connection
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/modbus_monitor
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       # Spring Boot settings
-      SPRING_DATA_MONGODB_DATABASE: modbus-monitor
       SERVER_PORT: 8080
       # Optional: Java memory settings
       JAVA_OPTS: "-Xms256m -Xmx512m"
@@ -119,9 +114,6 @@ networks:
     driver: bridge
     name: modbus-network
 
-# Uncomment volumes when using local MongoDB
-# volumes:
-#   mongodb_data:
-#     name: modbus-mongodb-data
-#   mongodb_config:
-#     name: modbus-mongodb-config
+volumes:
+  postgres_data:
+    name: modbus-postgres-data

@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record JobResponseDto (
-        String jobId,
+        Long jobId,
         String status,
         LocalDateTime createdAt,
         List<JobExecutionDto> executions

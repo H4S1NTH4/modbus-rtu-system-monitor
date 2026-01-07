@@ -1,30 +1,40 @@
 package com.hasintha.modbus.master.Model;
 
+import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.hibernate.annotations.Type;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import java.time.LocalDateTime;
 
 @Data
-@Document(collection = "job_executions")
+@Entity
+@Table(name = "job_executions")
 public class JobExecution {
 
     @Id
-    private  String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private  String jobId;
+    @Column(name = "job_id", nullable = false)
+    private Long jobId;
+
+    @Column(name = "target_ip", nullable = false)
     private String targetIp;
+
+    @Column(name = "execution_time", nullable = false)
     private LocalDateTime executionTime;
+
+    @Column(nullable = false, length = 50)
     private String status;
 
+    @Type(JsonBinaryType.class)
+    @Column(columnDefinition = "jsonb")
     private Telemetry telemetry;
 
     @Data
     public static class Telemetry{
         private double cpu;
-        private  double ram;
+        private double ram;
         private double disk;
     }
-
-
 }

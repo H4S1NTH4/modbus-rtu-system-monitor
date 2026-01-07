@@ -5,7 +5,7 @@ import com.hasintha.modbus.master.Model.JobExecution;
 import java.time.LocalDateTime;
 
 public record JobExecutionDto(
-        String executionId,
+        Long executionId,
         LocalDateTime executionTime,
         String status,
         JobExecution.Telemetry telemetry

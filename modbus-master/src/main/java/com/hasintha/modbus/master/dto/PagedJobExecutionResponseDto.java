@@ -9,7 +9,7 @@ import java.util.List;
  */
 public record PagedJobExecutionResponseDto(
     // Job metadata
-    String jobId,
+    Long jobId,
     String status,
     LocalDateTime createdAt,
     String cronExpression,

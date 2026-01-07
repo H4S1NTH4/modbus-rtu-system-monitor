@@ -1,42 +1,29 @@
 # docker-compose.local.yml
-# Optional override file for local MongoDB development
+# Override file for local PostgreSQL development
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 
 version: '3.8'
 
 services:
-  # Enable local MongoDB container
-  mongodb:
-    image: mongo:7.0
-    container_name: modbus-mongodb
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_DATABASE: modbus-monitor
+  # Local PostgreSQL configuration
+  postgres:
     ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
-    networks:
-      - modbus-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  # Override modbus-master to depend on local MongoDB
-  modbus-master:
-    depends_on:
-      mongodb:
-        condition: service_healthy
+      - "5432:5432"
     environment:
-      # Override to use local MongoDB
-      MONGO_URI: mongodb://mongodb:27017/modbus-monitor?retryWrites=true&w=majority
+      POSTGRES_DB: modbus_monitor
+      POSTGRES_USER: ${POSTGRES_USERNAME:-modbus_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-modbus_pass}
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+
+  # Override modbus-master for local development
+  modbus-master:
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/modbus_monitor
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME:-modbus_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-modbus_pass}
+      SPRING_JPA_SHOW_SQL: "true"
 
 volumes:
-  mongodb_data:
-    name: modbus-mongodb-data
-  mongodb_config:
-    name: modbus-mongodb-config
+  postgres_data_local:
+    name: modbus-postgres-data-local

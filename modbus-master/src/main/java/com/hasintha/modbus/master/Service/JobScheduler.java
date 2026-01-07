@@ -27,7 +27,7 @@ public class JobScheduler {
     private final JobExecutionRepository executionRepository;
 
     // Map to hold active tasks so we can cancel them later (for DELETE /jobs/{id})
-    private final Map<String, ScheduledFuture<?>> activeTasks = new ConcurrentHashMap<>();
+    private final Map<Long, ScheduledFuture<?>> activeTasks = new ConcurrentHashMap<>();
 
     public JobScheduler(ModbusService modbusService, JobRepository jobRepository, JobExecutionRepository executionRepository) {
         this.modbusService = modbusService;
@@ -106,7 +106,7 @@ public class JobScheduler {
     /**
      * Stops a job.
      */
-    public void stopJob(String jobId) {
+    public void stopJob(Long jobId) {
 
         // Check if job exists in database
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
@@ -135,7 +135,7 @@ public class JobScheduler {
      * - Updates parameters for stopped jobs and starts them
      * - Restarts stopped jobs without changing parameters
      */
-    public Job updateJob(String jobId, String newIp, String newCron) {
+    public Job updateJob(Long jobId, String newIp, String newCron) {
         // Find the existing job
         Job job = jobRepository.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
 
