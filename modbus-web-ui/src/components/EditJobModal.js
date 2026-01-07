@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { updateJob } from '../services/apiService';
 import { useToast } from '../context/ToastContext';
+import CronBuilder from './CronBuilder';
 import '../styles/EditJobModal.css';
 
 const EditJobModal = ({ isOpen, job, onClose, onUpdate }) => {
@@ -54,14 +55,6 @@ const EditJobModal = ({ isOpen, job, onClose, onUpdate }) => {
 
   if (!isOpen || !job) return null;
 
-  const cronExamples = [
-    { label: 'Every minute', value: '* * * * *' },
-    { label: 'Every hour', value: '0 * * * *' },
-    { label: 'Daily at midnight', value: '0 0 * * *' },
-    { label: 'Every 6 hours', value: '0 */6 * * *' },
-    { label: 'Every weekday at 9 AM', value: '0 9 * * 1-5' },
-  ];
-
   return (
     <div className="edit-modal-backdrop" onClick={onClose}>
       <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -91,33 +84,11 @@ const EditJobModal = ({ isOpen, job, onClose, onUpdate }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="edit-cron">CRON Expression</label>
-              <input
-                type="text"
-                id="edit-cron"
+              <CronBuilder
                 value={cronExpression}
-                onChange={(e) => setCronExpression(e.target.value)}
-                placeholder="e.g., 0 0 * * *"
+                onChange={setCronExpression}
                 disabled={loading}
               />
-              <small>Format: minute hour day month day-of-week</small>
-            </div>
-
-            <div className="cron-examples">
-              <p>Quick presets:</p>
-              <div className="preset-buttons">
-                {cronExamples.map((example) => (
-                  <button
-                    key={example.value}
-                    type="button"
-                    className="preset-btn"
-                    onClick={() => setCronExpression(example.value)}
-                    disabled={loading}
-                  >
-                    {example.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {error && <div className="alert alert-error">{error}</div>}

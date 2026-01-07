@@ -1,5 +1,6 @@
 package com.hasintha.modbus.master.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -10,6 +11,8 @@ public record PagedJobExecutionResponseDto(
     // Job metadata
     String jobId,
     String status,
+    LocalDateTime createdAt,
+    String cronExpression,
 
     // Paginated execution data
     List<JobExecutionDto> executions,

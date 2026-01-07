@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # MongoDB (OPTIONAL - Commented out by default)
+  # Uncomment this service to use local MongoDB instead of MongoDB Atlas
+  # To use local MongoDB:
+  #   1. Uncomment the mongodb service below
+  #   2. Uncomment the depends_on section in modbus-master
+  #   3. Uncomment the volumes section at the bottom
+  #   4. Update .env: MONGO_URI=mongodb://mongodb:27017/modbus-monitor
+  #
+  # mongodb:
+  #   image: mongo:7.0
+  #   container_name: modbus-mongodb
+  #   restart: unless-stopped
+  #   environment:
+  #     MONGO_INITDB_DATABASE: modbus-monitor
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #     - mongodb_config:/data/configdb
+  #   networks:
+  #     - modbus-network
+  #   healthcheck:
+  #     test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+  # Modbus Master (Spring Boot Backend)
+  modbus-master:
+    build:
+      context: ./modbus-master
+      dockerfile: Dockerfile
+    container_name: modbus-master
+    restart: unless-stopped
+    # Uncomment depends_on when using local MongoDB
+    # depends_on:
+    #   mongodb:
+    #     condition: service_healthy
+    environment:
+      # Uses MONGO_URI from .env file (defaults to MongoDB Atlas)
+      MONGO_URI: ${MONGO_URI}
+      # Spring Boot settings
+      SPRING_DATA_MONGODB_DATABASE: modbus-monitor
+      SERVER_PORT: 8080
+      # Optional: Java memory settings
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    networks:
+      - modbus-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Modbus Slave (C++ System Monitor)
+  modbus-slave:
+    build:
+      context: ./modbus-slave
+      dockerfile: Dockerfile
+    container_name: modbus-slave-1
+    restart: unless-stopped
+    environment:
+      SLAVE_ADDRESS: 1
+    ports:
+      - "5000:5000"
+    networks:
+      - modbus-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # Optional: Resource limits for monitoring accuracy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Web UI (React Frontend)
+  modbus-web-ui:
+    build:
+      context: ./modbus-web-ui
+      dockerfile: Dockerfile
+      args:
+        # Build-time API URL (can be overridden at runtime)
+        REACT_APP_API_URL: http://localhost:8080/api
+    container_name: modbus-web-ui
+    restart: unless-stopped
+    depends_on:
+      - modbus-master
+    environment:
+      # Runtime API URL override
+      REACT_APP_API_URL: http://localhost:8080/api
+    ports:
+      - "3000:80"
+    networks:
+      - modbus-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  modbus-network:
+    driver: bridge
+    name: modbus-network
+
+# Uncomment volumes when using local MongoDB
+# volumes:
+#   mongodb_data:
+#     name: modbus-mongodb-data
+#   mongodb_config:
+#     name: modbus-mongodb-config

@@ -15,7 +15,7 @@ REACT_APP_API_URL=http://localhost:8080/api
 
 ## Authentication
 
-Currently, the API does not require authentication. In production, implement appropriate authentication mechanisms (JWT, OAuth, etc.).
+Currently, the API does not require authentication.
 
 ## Endpoints
 
@@ -371,19 +371,3 @@ Current implementation uses polling (every 3 seconds) for real-time updates. For
 
 ---
 
-## Performance Considerations
-
-1. **Polling Interval**: Default is 3 seconds. Adjust in `JobStatus.js` if needed.
-2. **Large Job Lists**: For systems with many jobs, implement pagination in the backend.
-3. **Metrics History**: Consider implementing data retention policies to manage database size.
-
----
-
-## Future Enhancements
-
-- [ ] Implement WebSocket for real-time updates
-- [ ] Add pagination to job list endpoint
-- [ ] Implement job filtering and search
-- [ ] Add metrics export functionality (CSV, JSON)
-- [ ] Implement job templates
-- [ ] Add webhook support for job completion notifications
